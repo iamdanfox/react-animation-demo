@@ -1,7 +1,7 @@
 
 React = require 'react'
 require './Demo4.less'
-
+tweenState = require 'react-tween-state'
 
 
 # Bullet is fired horizontally at 1 pixel per second
@@ -16,33 +16,34 @@ class Bullet
     y: @vvel*time + 0.5*(-0.09)*time*time + @y
 
 
-
-
-
-
-
 module.exports = React.createClass
   displayName: 'Demo4'
 
+  mixins: [tweenState.Mixin]
+
   getInitialState: ->
-    cutOff: 9999
+    cutOff: 500
 
   hover: (e) ->
-    @setState
-      cutOff: e.pageX - @refs.r.getDOMNode().getBoundingClientRect().left
+    newCutOff = e.pageX - @refs.r.getDOMNode().getBoundingClientRect().left
+    if Math.abs(@state.cutOff - newCutOff) < 30
+      @setState(cutOff: newCutOff)
+    else
+      @tweenState 'cutOff',
+        easing: tweenState.easingTypes.easeInOutQuad
+        duration: 300
+        endValue: newCutOff
 
   render: ->
     myBullet = new Bullet
       x: 0
       y: 20
 
-    positions = for t in [0..100]
-      myBullet.getPosition t
-
-    <div className='demo4' style={{height: 200}} onMouseMove={@hover} ref={'r'}>
+    <div className='demo4' style={{height: 200}} onMouseMove={@hover} onClick={@click} ref={'r'}>
       <h1>Demo4</h1>
-      { positions
-          .filter (pos) => pos.x < @state.cutOff
+      { [0..100]
+          .map myBullet.getPosition
+          .filter (pos) => pos.x < @getTweeningValue('cutOff')
           .map (pos) -> <Dot pos={pos} /> }
     </div>
 
@@ -50,4 +51,4 @@ module.exports = React.createClass
 
 Dot = React.createClass
   render: ->
-    <div className='dot' style={{left: @props.pos.x, bottom: @props.pos.y}}></div>
+    <div className='dot' key={@props.pos.x} style={{left: @props.pos.x, bottom: @props.pos.y}}></div>
